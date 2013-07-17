@@ -54,6 +54,7 @@ uint16_t bufferIndex;
 int iw, iw1;
 uint16_t delayTime;
 uint8_t profReverb;
+uint8_t noTail;
 
 
 fixed lpIn,hpIn,difr,fSpeed,fHeight,fDelay,oscFMix;		// Variables para el filtro
@@ -149,6 +150,7 @@ int main()
 
 	profReverb = 0;
 	delayTime = 40;
+	noTail = 1;
 
 	pitchw = 0;
 
@@ -421,7 +423,26 @@ int main()
 			}
 
 			if(profReverb)
-				adsrAux = reverb(adsrAux, profReverb, delayTime);
+			{
+				if(noTail)
+				{
+					if(gate)
+					{
+						adsrAux = reverb(adsrAux, profReverb, delayTime);
+					}
+					else
+					{
+						reverb(0, profReverb, delayTime);
+					}
+				}
+				else
+				{
+					adsrAux = reverb(adsrAux, profReverb, delayTime);
+				}
+			}
+
+
+
 
 			OCR1A = adsrAux;
 			act = 0;
