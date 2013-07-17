@@ -690,6 +690,10 @@ uint8_t onda(uint8_t lugar, uint8_t forma, uint8_t parametro2, uint8_t div)
 			return 0;
 			break;
 
+		case RUIDO:
+			return (Ruido() * div) >> 8;
+			break;
+
 		default:
 			return (Sierra(lugar) * div) >> 8;
 			break;

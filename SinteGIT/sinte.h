@@ -11,6 +11,7 @@
 #define SUPER2		5
 #define	SIERRA		6
 #define NADA		7
+#define RUIDO		8
 
 #define DIV2		1
 #define DIV4		2
