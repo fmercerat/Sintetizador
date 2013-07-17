@@ -358,18 +358,19 @@ int main()
 						  onda(Cont[2]>>7, fOndaOsc[2], 0, volOsc[2])) >> DIV2;
 			adsrAux = salida;
 
+			if(adVel[0])
+				actualizafCut(adIndex>>1);
 
 			if(profFiltroLFO < 127)
 			{
-				auxVCA = freqFiltro + onda(LFO,TRIANGULO,0,127-profFiltroLFO);
+				auxVCA = //freqFiltro + onda(LFO,TRIANGULO,0,127-profFiltroLFO);
 //				auxVCA = freqFiltro + Triang(LFO)/profFiltroLFO;
 				if(auxVCA > 127)
 					auxVCA = 127;
 				actualizafCut(auxVCA);
 			}
 
-			if(adVel[0])
-				actualizafCut(adIndex>>1);
+
 
 //			actualizafCut(freqFiltro);
 
