@@ -46,6 +46,15 @@ uint8_t volOsc[4];		// Volumenes Osc (0-255)
 uint8_t oscShift[2];	// Trasposicion de la nota
 uint8_t egReset[2];		// 0 AR(VCA) --- 1 AD(VCF)
 
+/*
+ * Reverb
+ */
+uint8_t buffer[512];
+uint16_t bufferIndex;
+int iw, iw1;
+uint16_t delayTime;
+uint8_t profReverb;
+
 
 fixed lpIn,hpIn,difr,fSpeed,fHeight,fDelay,oscFMix;		// Variables para el filtro
 uint8_t fCut,fRes;										// Variables para el filtro
@@ -61,6 +70,8 @@ uint8_t Super2(uint8_t xxx);
 void ejecutaADSR(void);
 void ejecutaLFO(void);
 void ejecutaAD(void);
+
+uint8_t reverb(uint8_t entrada, uint8_t profundidad, uint16_t delay);
 
 uint8_t onda(uint8_t lugar, uint8_t forma, uint8_t parametro2, uint8_t div);
 
@@ -136,6 +147,9 @@ int main()
 	oscShift[1] = 7;
 
 
+	profReverb = 0;
+	delayTime = 40;
+
 	pitchw = 0;
 
 	LFO = 0;
@@ -145,6 +159,13 @@ int main()
 	PORTB |= (1 << PB0);
 
 	iniciaFiltroPillo();
+
+	for(bufferIndex = 0; bufferIndex < 512; bufferIndex++)
+	{
+		buffer[bufferIndex] = 0;
+	}
+
+	bufferIndex = 0;
 
 	sei();
 
@@ -329,6 +350,14 @@ int main()
 							oscShift[0] = mm.data2 >> 2;
 							break;
 
+						case 94:
+							profReverb = mm.data2 << 1;
+							break;
+
+						case 13:
+							delayTime = mm.data2 << 2;
+							break;
+
 						default:
 							break;
 					}
@@ -363,7 +392,7 @@ int main()
 
 			if(profFiltroLFO < 127)
 			{
-				auxVCA = //freqFiltro + onda(LFO,TRIANGULO,0,127-profFiltroLFO);
+				auxVCA = fCut + onda(LFO,TRIANGULO,0,127-profFiltroLFO);//freqFiltro + onda(LFO,TRIANGULO,0,127-profFiltroLFO);
 //				auxVCA = freqFiltro + Triang(LFO)/profFiltroLFO;
 				if(auxVCA > 127)
 					auxVCA = 127;
@@ -390,6 +419,9 @@ int main()
 
 				adsrAux = (adsrAux * auxVCA) >> 7;
 			}
+
+			if(profReverb)
+				adsrAux = reverb(adsrAux, profReverb, delayTime);
 
 			OCR1A = adsrAux;
 			act = 0;
@@ -633,5 +665,25 @@ uint8_t onda(uint8_t lugar, uint8_t forma, uint8_t parametro2, uint8_t div)
 	}
 
 	return (Sierra(lugar) * div) >> 8;
+}
+
+uint8_t reverb(uint8_t x, uint8_t prof, uint16_t delay)
+{
+	iw = 127 - buffer[bufferIndex];
+	iw = iw * prof/255;
+	iw1 = 127 - x;
+	iw1 = iw1 + iw;
+
+	if (iw1 < -127) iw1=-127;		// Limites
+	if (iw1 > 127) iw1=127;
+
+	buffer[bufferIndex] = 127 + iw1;
+
+	bufferIndex++;
+//	bufferIndex = bufferIndex & 511;
+
+	if(bufferIndex == delay) bufferIndex = 0;
+
+	return iw1+127;
 }
 
