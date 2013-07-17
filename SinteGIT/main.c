@@ -45,6 +45,7 @@ uint16_t bpmTop;		// Valor de tope para un bpm determinado
 uint8_t volOsc[4];		// Volumenes Osc (0-255)
 uint8_t oscShift[2];	// Trasposicion de la nota
 uint8_t egReset[2];		// 0 AR(VCA) --- 1 AD(VCF)
+uint8_t volRuido;
 
 /*
  * Reverb
@@ -360,6 +361,14 @@ int main()
 							delayTime = mm.data2 << 2;
 							break;
 
+						case 83:
+							noTail = mm.data2 >> 6;
+							break;
+
+						case 22:
+							volRuido = mm.data2;
+							break;
+
 						default:
 							break;
 					}
@@ -383,6 +392,7 @@ int main()
 //			salida = ((Cuadrada(Cont[0]>>7) + Triang(Cont[2]>>7))>>1); //+ (Seno(LFO)>>4);
 			if(fOndaOsc[2] == NADA)
 				salida = (onda(Cont[0]>>7, fOndaOsc[0], 15, volOsc[0]) +
+						  ((Ruido()*volRuido)>>7) +
 						  onda(Cont[1]>>7, fOndaOsc[1], 0, volOsc[1])) >> DIV2;
 			else
 				salida = (onda(Cont[0]>>7, fOndaOsc[0], 15, volOsc[0]) +
