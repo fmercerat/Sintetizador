@@ -1,6 +1,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
+#include <avr/eeprom.h>
 //#include <util/delay.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -38,6 +39,7 @@ uint8_t gate;			// Variable para saber cuando hay pulsada una tecla
 uint8_t act;			// Variable para saber cuando actualizar PWM asi no se hacen calculos innecesariamente
 uint16_t pitchw;		// Variable para controlar cambios realizados por pitch wheel en el oscilador
 uint8_t freqFiltro;		// Frecuencia del filtro 0-127
+uint8_t freqRes;		// Frecuencia de resonancia
 uint8_t continua;		// Valor en el que oscila el VCA
 uint8_t fOndaOsc[4];	// Formas de onda del oscilador -> 0 y 1 Nota1 --- 2 y 3 Nota2
 uint16_t bpmCont;		// Contador para bpm
@@ -74,8 +76,9 @@ void ejecutaLFO(void);
 void ejecutaAD(void);
 
 uint8_t reverb(uint8_t entrada, uint8_t profundidad, uint16_t delay);
-
 uint8_t onda(uint8_t lugar, uint8_t forma, uint8_t parametro2, uint8_t div);
+void grabador(void);
+void lector(void);
 
 int main()
 {
@@ -89,7 +92,8 @@ int main()
 	uint8_t auxVCA=0;
 	uint16_t pw = 0x2000;
 	uint16_t pwp = 0x2000;
-
+	uint8_t estSW1 = 0;
+	uint8_t estSW2 = 0;
 
 	crear_pila(&p);
 	for(i=0;i<TAMANO_MAXIMO_PILA;i++)
@@ -293,6 +297,7 @@ int main()
 
 						case 71:
 							actualizafRes(mm.data2);
+							freqRes = mm.data2;
 							break;
 
 						case 27:
@@ -451,12 +456,25 @@ int main()
 				}
 			}
 
-
-
-
 			OCR1A = adsrAux;
 			act = 0;
 		}
+
+		if(estadoSW1() && !estSW1)
+		{
+			estSW1 = 1;
+			grabador();
+		}
+		if(!estadoSW1() && estSW1)
+			estSW1 = 0;
+
+		if(estadoSW2() && !estSW2)
+		{
+			estSW2 = 1;
+			lector();
+		}
+		if(!estadoSW2() && estSW2)
+			estSW2 = 0;
 
 	}
 }
@@ -722,3 +740,66 @@ uint8_t reverb(uint8_t x, uint8_t prof, uint16_t delay)
 	return iw1+127;
 }
 
+void grabador(void)
+{
+	eeprom_update_byte((uint8_t *)0, velLFO);
+	eeprom_update_byte((uint8_t *)1, profVibrato);
+	eeprom_update_byte((uint8_t *)2, profFiltroLFO);
+	eeprom_update_byte((uint8_t *)3, profVCALFO);
+	eeprom_update_byte((uint8_t *)4, adsrVel[0]);
+	eeprom_update_byte((uint8_t *)5, adsrVel[1]);
+	eeprom_update_byte((uint8_t *)6, adVel[0]);
+	eeprom_update_byte((uint8_t *)7, adVel[1]);
+	eeprom_update_byte((uint8_t *)8, adSust);
+	eeprom_update_byte((uint8_t *)9, freqFiltro);
+	eeprom_update_byte((uint8_t *)10, freqRes);
+	eeprom_update_byte((uint8_t *)11, continua);
+	eeprom_update_byte((uint8_t *)12, fOndaOsc[0]);
+	eeprom_update_byte((uint8_t *)13, fOndaOsc[1]);
+	eeprom_update_byte((uint8_t *)14, fOndaOsc[2]);
+	eeprom_update_byte((uint8_t *)15, fOndaOsc[3]);
+	eeprom_update_byte((uint8_t *)16, volOsc[0]);
+	eeprom_update_byte((uint8_t *)17, volOsc[1]);
+	eeprom_update_byte((uint8_t *)18, volOsc[2]);
+	eeprom_update_byte((uint8_t *)19, volOsc[3]);
+	eeprom_update_byte((uint8_t *)20, oscShift[0]);
+	eeprom_update_byte((uint8_t *)21, oscShift[1]);
+	eeprom_update_byte((uint8_t *)22, egReset[0]);
+	eeprom_update_byte((uint8_t *)23, egReset[1]);
+	eeprom_update_byte((uint8_t *)24, volRuido);
+	eeprom_update_byte((uint8_t *)25, delayTime);
+	eeprom_update_byte((uint8_t *)26, profReverb);
+	eeprom_update_byte((uint8_t *)27, noTail);
+}
+
+void lector(void)
+{
+	velLFO = eeprom_read_byte((uint8_t *)0);
+	profVibrato = eeprom_read_byte((uint8_t *)1);
+	profFiltroLFO = eeprom_read_byte((uint8_t *)2);
+	profVCALFO = eeprom_read_byte((uint8_t *)3);
+	adsrVel[0] = eeprom_read_byte((uint8_t *)4);
+	adsrVel[1] = eeprom_read_byte((uint8_t *)5);
+	adVel[0] = eeprom_read_byte((uint8_t *)6);
+	adVel[1] = eeprom_read_byte((uint8_t *)7);
+	adSust = eeprom_read_byte((uint8_t *)8);
+	freqFiltro = eeprom_read_byte((uint8_t *)9);
+	freqRes = eeprom_read_byte((uint8_t *)10);
+	continua = eeprom_read_byte((uint8_t *)11);
+	fOndaOsc[0] = eeprom_read_byte((uint8_t *)12);
+	fOndaOsc[1] = eeprom_read_byte((uint8_t *)13);
+	fOndaOsc[2] = eeprom_read_byte((uint8_t *)14);
+	fOndaOsc[3] = eeprom_read_byte((uint8_t *)15);
+	volOsc[0] = eeprom_read_byte((uint8_t *)16);
+	volOsc[1] = eeprom_read_byte((uint8_t *)17);
+	volOsc[2] = eeprom_read_byte((uint8_t *)18);
+	volOsc[3] = eeprom_read_byte((uint8_t *)19);
+	oscShift[0] = eeprom_read_byte((uint8_t *)20);
+	oscShift[1] = eeprom_read_byte((uint8_t *)21);
+	egReset[0] = eeprom_read_byte((uint8_t *)22);
+	egReset[1] = eeprom_read_byte((uint8_t *)23);
+	volRuido = eeprom_read_byte((uint8_t *)24);
+	delayTime = eeprom_read_byte((uint8_t *)25);
+	profReverb = eeprom_read_byte((uint8_t *)26);
+	noTail = eeprom_read_byte((uint8_t *)27);
+}
