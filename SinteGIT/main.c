@@ -802,4 +802,6 @@ void lector(void)
 	delayTime = eeprom_read_byte((uint8_t *)25);
 	profReverb = eeprom_read_byte((uint8_t *)26);
 	noTail = eeprom_read_byte((uint8_t *)27);
+	actualizafCut(freqFiltro);
+	actualizafRes(freqRes);
 }
