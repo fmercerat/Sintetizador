@@ -45,9 +45,12 @@ uint8_t fOndaOsc[4];	// Formas de onda del oscilador -> 0 y 1 Nota1 --- 2 y 3 No
 uint16_t bpmCont;		// Contador para bpm
 uint16_t bpmTop;		// Valor de tope para un bpm determinado
 uint8_t volOsc[4];		// Volumenes Osc (0-255)
-uint8_t oscShift[2];	// Trasposicion de la nota
+int8_t oscShift[2];	// Trasposicion de la nota
 uint8_t egReset[2];		// 0 AR(VCA) --- 1 AD(VCF)
 uint8_t volRuido;
+uint8_t sampleHold;		// Activado Sample&Hold
+uint8_t contSH;
+uint8_t velSH;
 
 /*
  * Reverb
@@ -79,6 +82,7 @@ uint8_t reverb(uint8_t entrada, uint8_t profundidad, uint16_t delay);
 uint8_t onda(uint8_t lugar, uint8_t forma, uint8_t parametro2, uint8_t div);
 void grabador(void);
 void lector(void);
+int8_t shiftMIDI(uint8_t valorMIDI);
 
 int main()
 {
@@ -128,7 +132,7 @@ int main()
 	egReset[1] = 1;
 
 	profVibrato = 127;
-	velLFO = 20;
+	velLFO = 60;
 	act = 0;
 	profFiltroLFO = 127;
 	freqFiltro = FP_ONE;
@@ -151,6 +155,8 @@ int main()
 
 	oscShift[0] = 7;
 	oscShift[1] = 7;
+
+	sampleHold = 0;
 
 
 	profReverb = 0;
@@ -318,6 +324,10 @@ int main()
 							adsrVel[1] = mm.data2;
 							break;
 
+						case 70:
+							continua = mm.data2 << 1;
+							break;
+
 						case 80:	// profundidad filtro
 							profFiltroLFO = 130 - mm.data2;
 							break;
@@ -355,7 +365,7 @@ int main()
 							break;
 
 						case 18:
-							oscShift[0] = mm.data2 >> 2;
+							oscShift[0] = shiftMIDI(mm.data2);
 							break;
 
 						case 94:
@@ -366,8 +376,12 @@ int main()
 							delayTime = mm.data2 << 2;
 							break;
 
-						case 83:
+						case 28:
 							noTail = mm.data2 >> 6;
+							break;
+
+						case 83:
+							sampleHold = mm.data2 >> 6;
 							break;
 
 						case 22:
@@ -398,16 +412,16 @@ int main()
 			if(fOndaOsc[2] == NADA)
 				salida = (onda(Cont[0]>>7, fOndaOsc[0], 15, volOsc[0]) +
 						  ((Ruido()*volRuido)>>7) +
-						  onda(Cont[1]>>7, fOndaOsc[1], 0, volOsc[1])) >> DIV2;
+						  onda(Cont[1]>>7, fOndaOsc[1], 0, volOsc[1]));// >> DIV2;
 			else
 				salida = (onda(Cont[0]>>7, fOndaOsc[0], 15, volOsc[0]) +
 						  onda(Cont[2]>>7, fOndaOsc[2], 0, volOsc[2])) >> DIV2;
 			adsrAux = salida;
 
-			if(adVel[0])
+			if(adVel[0] > 1)
 				actualizafCut(adIndex>>1);
 
-			if(profFiltroLFO < 127)
+			if(profFiltroLFO < 126)
 			{
 				auxVCA = fCut + onda(LFO,TRIANGULO,0,127-profFiltroLFO);//freqFiltro + onda(LFO,TRIANGULO,0,127-profFiltroLFO);
 //				auxVCA = freqFiltro + Triang(LFO)/profFiltroLFO;
@@ -416,14 +430,25 @@ int main()
 				actualizafCut(auxVCA);
 			}
 
-
-
+			if(sampleHold)
+			{
+				if(LFO == 0)
+				{
+					auxVCA = Ruido() >> 1;
+					auxVCA += 15;
+					if(auxVCA > 127)
+						auxVCA = 127;
+					actualizafCut(auxVCA);
+				}
+			}
 //			actualizafCut(freqFiltro);
 
-			if(fCut != FP_ONE)
+	//		if(freqFiltro < 127)
 				adsrAux = correFiltro(salida);
 
 			adsrAux = (adsrAux * adsrIndex) >> 8;
+
+
 
 			if(profVCALFO < 127)		// 31<<2 = 124
 			{
@@ -520,7 +545,7 @@ void ejecutaLFO(void)
 	{
 		contLFO = 0;
 		LFO++;
-		if(LFO == 255)
+		if(LFO > 255)
 			LFO = 0;
 	}
 }
@@ -719,7 +744,11 @@ uint8_t onda(uint8_t lugar, uint8_t forma, uint8_t parametro2, uint8_t div)
 
 	return (Sierra(lugar) * div) >> 8;
 }
-
+uint8_t reverb(uint8_t x, uint8_t prof, uint16_t delay)
+{
+	return x;
+}
+/*
 uint8_t reverb(uint8_t x, uint8_t prof, uint16_t delay)
 {
 	iw = 127 - buffer[bufferIndex];
@@ -738,7 +767,7 @@ uint8_t reverb(uint8_t x, uint8_t prof, uint16_t delay)
 	if(bufferIndex == delay) bufferIndex = 0;
 
 	return iw1+127;
-}
+}*/
 
 void grabador(void)
 {
@@ -770,6 +799,7 @@ void grabador(void)
 	eeprom_update_byte((uint8_t *)25, delayTime);
 	eeprom_update_byte((uint8_t *)26, profReverb);
 	eeprom_update_byte((uint8_t *)27, noTail);
+	eeprom_update_byte((uint8_t *)28, sampleHold);
 }
 
 void lector(void)
@@ -802,6 +832,14 @@ void lector(void)
 	delayTime = eeprom_read_byte((uint8_t *)25);
 	profReverb = eeprom_read_byte((uint8_t *)26);
 	noTail = eeprom_read_byte((uint8_t *)27);
+	sampleHold = eeprom_read_byte((uint8_t *)28);
 	actualizafCut(freqFiltro);
 	actualizafRes(freqRes);
+	LFO = 0;
+	contLFO = 0;
+}
+
+int8_t shiftMIDI(uint8_t valorMIDI)
+{
+	return (valorMIDI * 49 / 128) - 24;
 }
