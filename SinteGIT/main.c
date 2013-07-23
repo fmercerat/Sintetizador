@@ -148,7 +148,7 @@ int main()
 	adVel[1] = 1;
 	adInicio = 0;
 
-	fOndaOsc[0] = SIERRA;
+	fOndaOsc[0] = CUADRADA;
 	fOndaOsc[1] = TRIANGULO;
 	fOndaOsc[2] = TRIANGULO;
 	fOndaOsc[3] = TRIANGULO;
@@ -330,6 +330,8 @@ int main()
 
 						case 80:	// profundidad filtro
 							profFiltroLFO = 130 - mm.data2;
+							if(profFiltroLFO >= 126)
+								actualizafCut(freqFiltro);
 							break;
 
 						case 81:
@@ -337,11 +339,16 @@ int main()
 							break;
 
 						case 1:
-							profFiltroLFO = 130 - mm.data2;
+							freqFiltro = mm.data2;
+							actualizafCut(freqFiltro);
 							break;
 
 						case 77:		//	Forma OSC1
 							fOndaOsc[0] = mm.data2 >> 4;
+							break;
+
+						case 79:
+							fOndaOsc[1] = mm.data2 >> 4;
 							break;
 
 						case 78:		//	Forma OSC2
@@ -441,9 +448,8 @@ int main()
 					actualizafCut(auxVCA);
 				}
 			}
-//			actualizafCut(freqFiltro);
 
-	//		if(freqFiltro < 127)
+//			if(fCut < 125)
 				adsrAux = correFiltro(salida);
 
 			adsrAux = (adsrAux * adsrIndex) >> 8;
@@ -507,10 +513,11 @@ int main()
 ISR(TIMER0_OVF_vect)
 {
 //	TCNT0 += 192;
-	TCNT0 += 156;
+	TCNT0 += 157;
 	if(Nota[0])
 	{
-		mod = notas[Nota[0]] + pitchw + (Seno(LFO) / (profVibrato+1)) ;//(Seno(LFO) >>  (profVibrato >> 4));	// Control profundidad vibrato 0~64
+//		mod = notas[Nota[0]] + pitchw + (Seno(LFO) / (profVibrato+1)) ;//(Seno(LFO) >>  (profVibrato >> 4));	// Control profundidad vibrato 0~64
+		mod = notas[Nota[0]] + pitchw;
 		INCREMENT_NOTE(mod,Cont[0]);
 		INCREMENT_NOTE(notas[Nota[0] + oscShift[0]],Cont[1]);
 
