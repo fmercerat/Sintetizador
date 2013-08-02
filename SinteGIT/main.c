@@ -49,8 +49,8 @@ int8_t oscShift[2];	// Trasposicion de la nota
 uint8_t egReset[2];		// 0 AR(VCA) --- 1 AD(VCF)
 uint8_t volRuido;
 uint8_t sampleHold;		// Activado Sample&Hold
-uint8_t contSH;
-uint8_t velSH;
+uint8_t contSH;			// por ahora funciona con el LFO para ahorrar un control
+uint8_t velSH;			//
 
 /*
  * Reverb
@@ -160,7 +160,7 @@ int main()
 
 
 	profReverb = 0;
-	delayTime = 40;
+	delayTime = 60;
 	noTail = 1;
 
 	pitchw = 0;
@@ -751,11 +751,7 @@ uint8_t onda(uint8_t lugar, uint8_t forma, uint8_t parametro2, uint8_t div)
 
 	return (Sierra(lugar) * div) >> 8;
 }
-uint8_t reverb(uint8_t x, uint8_t prof, uint16_t delay)
-{
-	return x;
-}
-/*
+
 uint8_t reverb(uint8_t x, uint8_t prof, uint16_t delay)
 {
 	iw = 127 - buffer[bufferIndex];
@@ -774,8 +770,7 @@ uint8_t reverb(uint8_t x, uint8_t prof, uint16_t delay)
 	if(bufferIndex == delay) bufferIndex = 0;
 
 	return iw1+127;
-}*/
-
+}
 void grabador(void)
 {
 	eeprom_update_byte((uint8_t *)0, velLFO);
