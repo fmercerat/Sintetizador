@@ -6,8 +6,8 @@
 #include "plat.h"
 //#include "lcd.h"
 
-static uint16_t over;
-
+//static uint16_t over;
+/*
 void inicia20KHzT2(void)
 {
 	OCR2 = 99; // 20KHz
@@ -15,7 +15,7 @@ void inicia20KHzT2(void)
 	TIMSK |= (1 << OCIE2);		// Inte3rrupt
 	TCCR2 |= (1 << CS21);		// 8 Prescaler
 }
-
+*/
 void iniciaPWMOCR1A(void)
 {
 	DDRB |= (1 << DDB1);		// OCR1A es salida
@@ -86,7 +86,21 @@ void permutaLedA(void)
 {
 	PUERTO_LEDA ^= (1 << LEDA);				// Invierte el valor del bit
 }
+uint8_t estadoSW1()							// 1 activado, 0 desactivado
+{
+	if(bit_is_clear(PIN_SW1,SW1))		// Si hay un 0 es que esta a tierra el pin
+		return 1;
 
+	return 0;
+}
+uint8_t estadoSW2()							// 1 activado, 0 desactivado
+{
+	if(bit_is_clear(PIN_SW2,SW2))		// Si hay un 0 es que esta a tierra el pin
+		return 1;
+
+	return 0;
+}
+/*
 uint8_t estadoSW1()							// 1 activado, 0 desactivado
 {
 	if(bit_is_clear(PIN_SW1,SW1))		// Si hay un 0 es que esta a tierra el pin
@@ -109,7 +123,7 @@ uint8_t estadoSW2()							// 1 activado, 0 desactivado
 	}
 
 	return 0;
-}
+}*/
 
 void esperarPresionSW1(void)
 {
@@ -128,7 +142,7 @@ void iniciaPlataforma(void)
 	iniciaSW1();
 	iniciaSW2();
 }
-
+/*
 void iniciaTimer1s(void)
 {
 	OCR1A = 15624;		//  [ (clock_speed / Prescaler) * tiempo_deseado ] - 1
@@ -145,7 +159,7 @@ void iniciaTimer(uint16_t segs)
 	TIMSK |= (1 << OCIE1A);					// Habilita interruciones en comparacion
 	TCCR1B |= (1 << CS12) | (1 << CS10);  	// Pone el prescaler en 1024
 }
-
+*/
 void iniciarUART(uint8_t prescaler, uint8_t modo, uint8_t interrupciones, uint8_t sinc)
 {
 	UBRRH = (prescaler >> 8);		// Ajustes de prescaler
@@ -200,7 +214,7 @@ void iniciarUARTMIDI()
 {
 	iniciarUART(31, UART_RXTX, UART_CON_INTERRUPCIONES, UART_SINC);
 }
-
+/*
 void iniciaLCD()
 {
 //	lcd_init(LCD_DISP_ON);
@@ -213,7 +227,8 @@ void escribeLCD(const char *s)
 //	lcd_home();
 //	lcd_puts(s);
 }
-
+*/
+/*
 void iniciarPWM(void)
 {
 	DDRB |= (1 << PB1);						// PB1-OCR1A  Es salida
@@ -234,13 +249,14 @@ void iniciarPWMICR(void)
 	TCCR1A |= (1 << COM1A1) | (1 << WGM11);	//  Non inverting mode Phase corrected PWM
 	TCCR1B |= (1 << WGM13) | (1 << CS11) | (1 << CS10);	// Fast PWM, 8bit,  64 prescaler
 }
-
+*/
+/*
 void iniciaTimer01ms(void)
 {
 	TIMSK |= (1 << TOIE0);					// Habilita interrupciones en overflow timer 0
 	TCCR0 |= (1 << CS01) | (1 << CS00);		// Prescaler 64
 
-/*
+
  *  Hay que agregar
  *
  * 	ISR (TIMER0_OVF_vect)  // timer0 overflow interrupt
@@ -251,8 +267,8 @@ void iniciaTimer01ms(void)
  *
  *	static uint16_t over;
  */
-}
-
+//}
+/*
 uint8_t comparaTimer0(uint16_t dato)
 {
 	if(over >= dato)
@@ -263,7 +279,7 @@ uint8_t comparaTimer0(uint16_t dato)
 	else
 		return 0;
 }
-
+*/
 void iniciarPila(pila *p)
 {
 	uint8_t i;

@@ -74,7 +74,7 @@ uint8_t fCut,fRes;										// Variables para el filtro
 
 void actualizafRes(fixed ff);
 void actualizafCut(fixed ff);
-void iniciaFiltroPillo(void);
+void iniciaFiltro(void);
 uint8_t correFiltro(fixed entrada);
 uint8_t Seno(uint8_t xxx);
 uint8_t Super(uint8_t xxx);
@@ -110,7 +110,7 @@ int main()
 		apilar(0,&p);
 	while(desMidi(&p));
 
-	iniciaFiltroPillo();
+	iniciaFiltro();
 
 	iniciaPlataforma();
 	inicia20KHzT0();
@@ -190,7 +190,7 @@ int main()
 	DDRB |= (1 << PB0);
 	PORTB |= (1 << PB0);
 
-	iniciaFiltroPillo();
+	iniciaFiltro();
 
 	for(bufferIndex = 0; bufferIndex < 512; bufferIndex++)
 	{
@@ -663,6 +663,7 @@ uint8_t Seno(uint8_t xxx)
 uint8_t Super(uint8_t xxx)
 {
 	return pgm_read_byte(&super[xxx]);
+
 }
 
 uint8_t Super2(uint8_t xxx)
@@ -682,7 +683,7 @@ void actualizafCut(fixed ff)
 	fCut = fp_mul(ff, ff);
 }
 
-void iniciaFiltroPillo(void)
+void iniciaFiltro(void)
 {
 	freqFiltro = FP_ONE;
 	actualizafCut(freqFiltro);
@@ -823,6 +824,7 @@ uint8_t reverb(uint8_t x, uint8_t prof, uint16_t delay)
 
 	return iw1+127;
 }
+
 void grabador(void)
 {
 	eeprom_update_byte((uint8_t *)0, velLFO);
