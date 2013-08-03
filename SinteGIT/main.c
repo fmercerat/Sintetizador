@@ -49,9 +49,14 @@ int8_t oscShift[2];	// Trasposicion de la nota
 uint8_t egReset[2];		// 0 AR(VCA) --- 1 AD(VCF)
 uint8_t volRuido;
 uint8_t sampleHold;		// Activado Sample&Hold
-uint8_t contSH;			// por ahora funciona con el LFO para ahorrar un control
-uint8_t velSH;			//
-
+//uint8_t contSH;			// por ahora funciona con el LFO para ahorrar un control
+//uint8_t velSH;			//
+int8_t arp[8];			//
+uint8_t arpIni;			// valor inicial de la nota
+uint16_t contArp;
+int8_t arpOut;
+uint8_t arpeg;			// Seleccion arpegiador
+uint8_t arpSH;			// Seleccion ARP y SH 	0 00 - 1 01 - 2 10 - 3 11    // 0 - off | 1 - on
 /*
  * Reverb
  */
@@ -132,6 +137,7 @@ int main()
 	egReset[1] = 1;
 
 	profVibrato = 127;
+	LFO = 0;
 	velLFO = 60;
 	act = 0;
 	profFiltroLFO = 127;
@@ -158,6 +164,17 @@ int main()
 
 	sampleHold = 0;
 
+	arp[0] = 0;
+	arp[1] = 12;
+	arp[2] = 0;
+	arp[3] = -12;
+	arp[4] = 0;
+	arp[5] = 7;
+	arp[6] = 0;
+	arp[7] = -7;
+
+	arpIni = 0;
+	arpeg = 0;		//	Apagado inicialmente
 
 	profReverb = 0;
 	delayTime = 60;
@@ -221,7 +238,6 @@ int main()
 						}
 					}
 					gate = 1;
-
 					break;
 				}
 
@@ -389,6 +405,7 @@ int main()
 
 						case 83:
 							sampleHold = mm.data2 >> 6;
+							arpeg = (mm.data2 >> 5) & 1;
 							break;
 
 						case 22:
@@ -517,7 +534,7 @@ ISR(TIMER0_OVF_vect)
 	if(Nota[0])
 	{
 //		mod = notas[Nota[0]] + pitchw + (Seno(LFO) / (profVibrato+1)) ;//(Seno(LFO) >>  (profVibrato >> 4));	// Control profundidad vibrato 0~64
-		mod = notas[Nota[0]] + pitchw;
+		mod = notas[Nota[0] + arp[arpIni]] + pitchw;
 		INCREMENT_NOTE(mod,Cont[0]);
 		INCREMENT_NOTE(notas[Nota[0] + oscShift[0]],Cont[1]);
 
@@ -537,6 +554,24 @@ ISR(TIMER0_OVF_vect)
 	ejecutaAD();
 	ejecutaADSR();
 	ejecutaLFO();
+
+	if(arpeg)
+	{
+		contArp++;
+		if(contArp > 5000)
+			contArp = 0;
+		if(!contArp)
+		{
+			arpIni++;
+			if(arpIni > 7)
+				arpIni = 0;
+		}
+		if(!gate)
+		{
+			arpIni = 0;
+			contArp = 0;
+		}
+	}
 }
 
 ISR (USART_RXC_vect)
