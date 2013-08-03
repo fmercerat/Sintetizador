@@ -57,6 +57,7 @@ uint16_t contArp;
 int8_t arpOut;
 uint8_t arpeg;			// Seleccion arpegiador
 uint8_t arpSH;			// Seleccion ARP y SH 	0 00 - 1 01 - 2 10 - 3 11    // 0 - off | 1 - on
+uint8_t dist;			// nivel de distorsion
 /*
  * Reverb
  */
@@ -136,13 +137,13 @@ int main()
 	egReset[0] = 0;
 	egReset[1] = 1;
 
-	profVibrato = 127;
+	profVibrato = 0;
 	LFO = 0;
 	velLFO = 60;
 	act = 0;
 	profFiltroLFO = 127;
 	freqFiltro = FP_ONE;
-	profVCALFO = 127;
+	profVCALFO = 0;
 	continua = 0;
 
 	gate = 0;
@@ -165,16 +166,17 @@ int main()
 	sampleHold = 0;
 
 	arp[0] = 0;
-	arp[1] = 12;
+	arp[1] = 2;
 	arp[2] = 0;
-	arp[3] = -12;
-	arp[4] = 0;
-	arp[5] = 7;
+	arp[3] = 2;
+	arp[4] = 3;
+	arp[5] = 2;
 	arp[6] = 0;
-	arp[7] = -7;
+	arp[7] = 7;
 
 	arpIni = 0;
 	arpeg = 0;		//	Apagado inicialmente
+	dist = 0;
 
 	profReverb = 0;
 	delayTime = 60;
@@ -199,7 +201,6 @@ int main()
 
 	sei();
 
-	freqFiltro = 68;
 	actualizafCut(freqFiltro);
 	while(1)
 	{
@@ -327,9 +328,7 @@ int main()
 							break;
 
 						case 76:
-							profVibrato = 127 - mm.data2;
-							if(mm.data2 == 0)
-								profVibrato = 0xFF;
+							profVibrato =mm.data2;
 							break;
 
 						case 73:
@@ -355,8 +354,10 @@ int main()
 							break;
 
 						case 1:
-							freqFiltro = mm.data2;
-							actualizafCut(freqFiltro);
+					//		freqFiltro = mm.data2;
+					//		actualizafCut(freqFiltro);
+					//		profVibrato = mm.data2;
+							dist = mm.data2;
 							break;
 
 						case 77:		//	Forma OSC1
@@ -406,6 +407,7 @@ int main()
 						case 83:
 							sampleHold = mm.data2 >> 6;
 							arpeg = (mm.data2 >> 5) & 1;
+							actualizafCut(freqFiltro);
 							break;
 
 						case 22:
@@ -434,9 +436,9 @@ int main()
 		{
 //			salida = ((Cuadrada(Cont[0]>>7) + Triang(Cont[2]>>7))>>1); //+ (Seno(LFO)>>4);
 			if(fOndaOsc[2] == NADA)
-				salida = (onda(Cont[0]>>7, fOndaOsc[0], 15, volOsc[0]) +
+				salida = (onda(Cont[0]>>7, fOndaOsc[0], 25, volOsc[0]) +
 						  ((Ruido()*volRuido)>>7) +
-						  onda(Cont[1]>>7, fOndaOsc[1], 0, volOsc[1]));// >> DIV2;
+						  onda(Cont[1]>>7, fOndaOsc[1], 25, volOsc[1]));// >> DIV2;
 			else
 				salida = (onda(Cont[0]>>7, fOndaOsc[0], 15, volOsc[0]) +
 						  onda(Cont[2]>>7, fOndaOsc[2], 0, volOsc[2])) >> DIV2;
@@ -447,7 +449,7 @@ int main()
 
 			if(profFiltroLFO < 126)
 			{
-				auxVCA = fCut + onda(LFO,TRIANGULO,0,127-profFiltroLFO);//freqFiltro + onda(LFO,TRIANGULO,0,127-profFiltroLFO);
+				auxVCA = fCut + onda(LFO,SENO,0,127-profFiltroLFO+continua);//freqFiltro + onda(LFO,TRIANGULO,0,127-profFiltroLFO);
 //				auxVCA = freqFiltro + Triang(LFO)/profFiltroLFO;
 				if(auxVCA > 127)
 					auxVCA = 127;
@@ -473,9 +475,9 @@ int main()
 
 
 
-			if(profVCALFO < 127)		// 31<<2 = 124
+			if(profVCALFO)		// 31<<2 = 124
 			{
-				auxVCA = Sierra(LFO)/(33-(profVCALFO>>2));
+				auxVCA = Triang(LFO)/(33-(profVCALFO>>2));
 
 				if(auxVCA + continua > 255)		//	64 Nivel de continua
 					auxVCA = 255;
@@ -502,6 +504,17 @@ int main()
 				{
 					adsrAux = reverb(adsrAux, profReverb, delayTime);
 				}
+			}
+
+			if(dist)
+			{
+				adsrAux = (adsrAux * dist) >> 5;
+				if(adsrAux > 255)
+					adsrAux = 255;
+				adsrAux = ((adsrAux * adsrAux) >> 10) + ((((adsrAux * adsrAux)>>8)*adsrAux)>>7);
+
+				if(adsrAux > 255)
+					adsrAux = 255;
 			}
 
 			OCR1A = adsrAux;
@@ -535,8 +548,12 @@ ISR(TIMER0_OVF_vect)
 	{
 //		mod = notas[Nota[0]] + pitchw + (Seno(LFO) / (profVibrato+1)) ;//(Seno(LFO) >>  (profVibrato >> 4));	// Control profundidad vibrato 0~64
 		mod = notas[Nota[0] + arp[arpIni]] + pitchw;
+		if(profVibrato)
+		{
+			mod += (Seno(LFO) * profVibrato) >> 9;
+		}
 		INCREMENT_NOTE(mod,Cont[0]);
-		INCREMENT_NOTE(notas[Nota[0] + oscShift[0]],Cont[1]);
+		INCREMENT_NOTE(notas[Nota[0] + oscShift[0]] + ((Seno(LFO) * profVibrato) >> 9) + pitchw,Cont[1]);
 
 		if(fOndaOsc[2] == NADA)
 		{
@@ -583,7 +600,7 @@ ISR (USART_RXC_vect)
 void ejecutaLFO(void)
 {
 	contLFO++;
-	if(contLFO == velLFO)	// Control velocidad vibrato 0~64
+	if(contLFO >= velLFO)	// Control velocidad vibrato 0~64
 	{
 		contLFO = 0;
 		LFO++;
