@@ -111,6 +111,8 @@ int main()
 	uint16_t pwp = 0x2000;
 	uint8_t estSW1 = 0;
 	uint8_t estSW2 = 0;
+	uint8_t param2[4];		// Parametro 2 de las ondas
+
 
 	crear_pila(&p);
 	for(i=0;i<TAMANO_MAXIMO_PILA;i++)
@@ -168,8 +170,13 @@ int main()
 	fOndaOsc[2] = TRIANGULO;
 	fOndaOsc[3] = TRIANGULO;
 
+	param2[0] = 25;
+	param2[1] = 25;
+	param2[2] = 25;
+	param2[3] = 25;
+
 	oscShift[0] = 7;
-	oscShift[1] = 7;
+	oscShift[1] = 3;
 
 	sampleHold = 0;
 
@@ -393,12 +400,24 @@ int main()
 							fOndaOsc[2] = mm.data2 >> 4;
 							break;
 
+						case 112:		//	Forma OSC2
+							fOndaOsc[3] = mm.data2 >> 4;
+							break;
+
 						case 20:
 							volOsc[0] = mm.data2 << 1;
 							break;
 
 						case 21:
 							volOsc[1] = mm.data2 << 1;
+							break;
+
+						case 120:
+							volOsc[2] = mm.data2 << 1;
+							break;
+
+						case 121:
+							volOsc[3] = mm.data2 << 1;
 							break;
 
 						case 23:
@@ -412,6 +431,10 @@ int main()
 						case 18:
 							oscShift[0] = shiftMIDI(mm.data2);
 							break;
+
+						case 118:
+							oscShift[1] = shiftMIDI(mm.data2);
+						break;
 
 						case 94:
 							profReverb = mm.data2 << 1;
@@ -434,6 +457,14 @@ int main()
 
 						case 22:
 							volRuido = mm.data2;
+							break;
+
+						case 113:
+							egReset[0] = mm.data2 >> 6;
+							break;
+
+						case 114:
+							egReset[1] = mm.data2 >> 6;
 							break;
 
 						default:
@@ -459,15 +490,16 @@ int main()
 //			display72(programa);
 //			salida = ((Cuadrada(Cont[0]>>7) + Triang(Cont[2]>>7))>>1); //+ (Seno(LFO)>>4);
 			if(fOndaOsc[2] == NADA)
-				salida = (onda(Cont[0]>>7, fOndaOsc[0], 25, volOsc[0]) +
+				salida = (onda(Cont[0]>>7, fOndaOsc[0], param2[0], volOsc[0]) +
 						  ((Ruido()*volRuido)>>7) +
-						  onda(Cont[1]>>7, fOndaOsc[1], 25, volOsc[1]) +
-						  onda(Cont[3]>>7, fOndaOsc[3], 25, volOsc[3]));// >> DIV2;
+						  onda(Cont[1]>>7, fOndaOsc[1], param2[1], volOsc[1]) +
+						  onda(Cont[3]>>7, fOndaOsc[3], param2[3], volOsc[3]));// >> DIV2;
 			else
-				salida = (onda(Cont[0]>>7, fOndaOsc[0], 25, volOsc[0]) +
-						  onda(Cont[1]>>7, fOndaOsc[1], 25, volOsc[1]) +
-						  onda(Cont[2]>>7, fOndaOsc[2], 25, volOsc[2]) +
-						  onda(Cont[3]>>7, fOndaOsc[3], 15, volOsc[3])) >> DIV4;
+				salida = (onda(Cont[0]>>7, fOndaOsc[0], param2[0], volOsc[0]) +
+						  onda(Cont[1]>>7, fOndaOsc[1], param2[1], volOsc[1]) +
+						  onda(Cont[2]>>7, fOndaOsc[2], param2[2], volOsc[2]) +
+						  onda(Cont[3]>>7, fOndaOsc[3], param2[3], volOsc[3]) +
+						  ((Ruido()*volRuido)>>7)) >> DIV4;
 			adsrAux = salida;
 
 			if(adVel[0] > 1)
