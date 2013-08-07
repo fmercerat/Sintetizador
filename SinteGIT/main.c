@@ -461,10 +461,13 @@ int main()
 			if(fOndaOsc[2] == NADA)
 				salida = (onda(Cont[0]>>7, fOndaOsc[0], 25, volOsc[0]) +
 						  ((Ruido()*volRuido)>>7) +
-						  onda(Cont[1]>>7, fOndaOsc[1], 25, volOsc[1]));// >> DIV2;
+						  onda(Cont[1]>>7, fOndaOsc[1], 25, volOsc[1]) +
+						  onda(Cont[3]>>7, fOndaOsc[3], 25, volOsc[3]));// >> DIV2;
 			else
-				salida = (onda(Cont[0]>>7, fOndaOsc[0], 15, volOsc[0]) +
-						  onda(Cont[2]>>7, fOndaOsc[2], 0, volOsc[2])) >> DIV2;
+				salida = (onda(Cont[0]>>7, fOndaOsc[0], 25, volOsc[0]) +
+						  onda(Cont[1]>>7, fOndaOsc[1], 25, volOsc[1]) +
+						  onda(Cont[2]>>7, fOndaOsc[2], 25, volOsc[2]) +
+						  onda(Cont[3]>>7, fOndaOsc[3], 15, volOsc[3])) >> DIV4;
 			adsrAux = salida;
 
 			if(adVel[0] > 1)
@@ -581,6 +584,7 @@ ISR(TIMER0_OVF_vect)
 		if(fOndaOsc[2] == NADA)
 		{
 			INCREMENT_NOTE(0,Cont[2]);
+			INCREMENT_NOTE(notas[Nota[0] + oscShift[1]] + ((Seno(LFO) * profVibrato) >> 9) + pitchw,Cont[3]);
 		}
 		else
 		{
