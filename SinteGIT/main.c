@@ -44,7 +44,7 @@ uint8_t freqFiltro;		// Frecuencia del filtro 0-127
 uint8_t freqRes;		// Frecuencia de resonancia
 uint8_t continua;		// Valor en el que oscila el VCA
 uint8_t fOndaOsc[4];	// Formas de onda del oscilador -> 0 y 1 Nota1 --- 2 y 3 Nota2
-uint16_t bpmCont;		// Contador para bpm
+uint8_t largArp;		// Contador para bpm
 uint16_t bpmTop;		// Valor de tope para un bpm determinado
 uint8_t volOsc[4];		// Volumenes Osc (0-255)
 int8_t oscShift[2];	// Trasposicion de la nota
@@ -61,8 +61,9 @@ uint8_t arpeg;			// Seleccion arpegiador
 uint8_t arpSH;			// Seleccion ARP y SH 	0 00 - 1 01 - 2 10 - 3 11    // 0 - off | 1 - on
 
 uint8_t dist;			// nivel de distorsion
-uint8_t contSPI;		// actualizar display
+
 uint8_t programa;		// numero de programa
+
 /*
  * Reverb
  */
@@ -73,7 +74,7 @@ uint16_t delayTime;
 uint8_t profReverb;
 uint8_t noTail;
 
-uint8_t prueba;
+uint8_t tipoARP;
 
 
 fixed lpIn,hpIn,difr,fSpeed,fHeight,fDelay,oscFMix;		// Variables para el filtro
@@ -96,6 +97,8 @@ uint8_t onda(uint8_t lugar, uint8_t forma, uint8_t parametro2, uint8_t div);
 void grabador(void);
 void lector(void);
 int8_t shiftMIDI(uint8_t valorMIDI);
+
+void cargarArp(uint8_t xxxx);
 
 int main()
 {
@@ -191,6 +194,7 @@ int main()
 
 	arpIni = 0;
 	arpeg = 0;		//	Apagado inicialmente
+	largArp = 7;
 	dist = 0;
 
 	profReverb = 0;
@@ -198,6 +202,8 @@ int main()
 	noTail = 1;
 
 	pitchw = 0;
+
+	tipoARP = 0;
 
 	LFO = 0;
 	contLFO = 0;
@@ -356,7 +362,7 @@ int main()
 							break;
 
 						case 76:
-							profVibrato =mm.data2;
+							profVibrato = mm.data2;
 							break;
 
 						case 73:
@@ -385,7 +391,8 @@ int main()
 					//		freqFiltro = mm.data2;
 					//		actualizafCut(freqFiltro);
 					//		profVibrato = mm.data2;
-							dist = mm.data2;
+					//		dist = mm.data2;
+							velLFO = 64 - (mm.data2 >> 1);
 							break;
 
 						case 77:		//	Forma OSC1
@@ -449,10 +456,20 @@ int main()
 							break;
 
 						case 83:
-							arpSH = mm.data2 >> 5;
-							sampleHold = arpSH >> 1;
-							arpeg = arpSH & 1;
+						//	arpSH = mm.data2 >> 5;
+						//	sampleHold = arpSH >> 1;
+						//	arpeg = arpSH & 1;
+						//	actualizafCut(freqFiltro);
+							dist = mm.data2;
+							break;
+
+						case 100:
+							arpeg = mm.data2 >> 6;
 							actualizafCut(freqFiltro);
+							break;
+
+						case 101:
+							sampleHold = mm.data2 >> 6;
 							break;
 
 						case 22:
@@ -465,6 +482,30 @@ int main()
 
 						case 114:
 							egReset[1] = mm.data2 >> 6;
+							break;
+
+						case 115:
+							param2[0] = mm.data2;
+							break;
+
+						case 116:
+							param2[1] = mm.data2;
+							break;
+
+						case 117:
+							param2[2] = mm.data2;
+							break;
+
+						case 119:
+							param2[3] = mm.data2;
+							break;
+
+						case 102:
+							cargarArp(mm.data2 >> 3);
+							break;
+
+						case 103:
+							largArp = mm.data2 >> 4;
 							break;
 
 						default:
@@ -641,7 +682,7 @@ ISR(TIMER0_OVF_vect)
 		if(!LFO)
 		{
 			arpIni++;
-			if(arpIni > 7)
+			if(arpIni > largArp)
 				arpIni = 0;
 		}
 		if(!gate)
@@ -889,7 +930,7 @@ uint8_t reverb(uint8_t x, uint8_t prof, uint16_t delay)
 void grabador(void)
 {
 	uint8_t aux;
-	aux= programa*31;
+	aux= programa*33;
 
 	eeprom_update_byte((uint8_t *)0 + aux, velLFO);
 	eeprom_update_byte((uint8_t *)1 + aux, profVibrato );
@@ -922,12 +963,14 @@ void grabador(void)
 	eeprom_update_byte((uint8_t *)28 + aux, sampleHold );
 	eeprom_update_byte((uint8_t *)29 + aux, arpSH );
 	eeprom_update_byte((uint8_t *)30 + aux, dist );
+	eeprom_update_byte((uint8_t *)31 + aux, egReset[0]);
+	eeprom_update_byte((uint8_t *)32 + aux, egReset[1]);
 }
 
 void lector(void)
 {
 	uint8_t aux;
-	aux = programa * 31;
+	aux = programa * 33;
 
 	velLFO = eeprom_read_byte((uint8_t *)0 + aux);
 	profVibrato = eeprom_read_byte((uint8_t *)1 + aux);
@@ -960,6 +1003,8 @@ void lector(void)
 	sampleHold = eeprom_read_byte((uint8_t *)28 + aux);
 	arpSH = eeprom_read_byte((uint8_t *)29 + aux);
 	dist = eeprom_read_byte((uint8_t *)30 + aux);
+	egReset[0] = eeprom_read_byte((uint8_t *)31 + aux);
+	egReset[1] = eeprom_read_byte((uint8_t *)32 + aux);
 
 	sampleHold = arpSH >> 1;
 	arpeg = arpSH & 1;
@@ -972,4 +1017,14 @@ void lector(void)
 int8_t shiftMIDI(uint8_t valorMIDI)
 {
 	return (valorMIDI * 49 / 128) - 24;
+}
+
+void cargarArp(uint8_t xxxx)
+{
+	uint8_t i;
+
+	for(i=0; i<8; i++)
+	{
+		arp[i] = eeprom_read_byte((uint8_t *)350+i+(i*8)) - 25;
+	}
 }
