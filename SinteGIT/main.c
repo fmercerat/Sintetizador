@@ -60,9 +60,9 @@ int8_t arpOut;
 uint8_t arpeg;			// Seleccion arpegiador
 uint8_t arpSH;			// Seleccion ARP y SH 	0 00 - 1 01 - 2 10 - 3 11    // 0 - off | 1 - on
 
-uint8_t param2[4];
-uint8_t programa;
 uint8_t dist;			// nivel de distorsion
+uint8_t contSPI;		// actualizar display
+uint8_t programa;		// numero de programa
 /*
  * Reverb
  */
@@ -172,11 +172,6 @@ int main()
 	oscShift[1] = 7;
 
 	sampleHold = 0;
-
-	param2[0] = 25;
-	param2[1] = 25;
-	param2[2] = 25;
-	param2[3] = 25;
 
 	arp[0] = 0;
 	arp[1] = 2;
@@ -441,14 +436,6 @@ int main()
 							volRuido = mm.data2;
 							break;
 
-						case 113:
-							egReset[0] = mm.data2 >> 6;
-							break;
-
-						case 114:
-							egReset[1] = mm.data2 >> 6;
-							break;
-
 						default:
 							break;
 					}
@@ -472,15 +459,12 @@ int main()
 //			display72(programa);
 //			salida = ((Cuadrada(Cont[0]>>7) + Triang(Cont[2]>>7))>>1); //+ (Seno(LFO)>>4);
 			if(fOndaOsc[2] == NADA)
-				salida = (onda(Cont[0]>>7, fOndaOsc[0], param2[0], volOsc[0]) +
+				salida = (onda(Cont[0]>>7, fOndaOsc[0], 25, volOsc[0]) +
 						  ((Ruido()*volRuido)>>7) +
-						  onda(Cont[1]>>7, fOndaOsc[1], param2[1], volOsc[1]));// >> DIV2;
+						  onda(Cont[1]>>7, fOndaOsc[1], 25, volOsc[1]));// >> DIV2;
 			else
-				salida = (onda(Cont[0]>>7, fOndaOsc[0], param2[0], volOsc[0]) +
-						  onda(Cont[1]>>7, fOndaOsc[1], param2[1], volOsc[1]) +
-						  ((Ruido()*volRuido)>>7) +
-						  onda(Cont[2]>>7, fOndaOsc[2], param2[2],  volOsc[2]) +
-						  onda(Cont[3]>>7, fOndaOsc[3], param2[3],  volOsc[3])) >> DIV4;
+				salida = (onda(Cont[0]>>7, fOndaOsc[0], 15, volOsc[0]) +
+						  onda(Cont[2]>>7, fOndaOsc[2], 0, volOsc[2])) >> DIV2;
 			adsrAux = salida;
 
 			if(adVel[0] > 1)
@@ -597,12 +581,10 @@ ISR(TIMER0_OVF_vect)
 		if(fOndaOsc[2] == NADA)
 		{
 			INCREMENT_NOTE(0,Cont[2]);
-			INCREMENT_NOTE(0,Cont[3]);
 		}
 		else
 		{
 			INCREMENT_NOTE(notas[Nota[2]],Cont[2]);
-			INCREMENT_NOTE(notas[Nota[2] + oscShift[1]] + ((Seno(LFO) * profVibrato) >> 9) + pitchw ,Cont[3]);
 		}
 
 	}
@@ -616,11 +598,11 @@ ISR(TIMER0_OVF_vect)
 
 	if(arpeg)
 	{
-		contArp++;
-		if(contArp > velLFO<<8)
-			contArp = 0;
-		if(!contArp)
-//		if(!LFO)
+//		contArp++;
+//		if(contArp > 5000)
+//			contArp = 0;
+//		if(!contArp)
+		if(!LFO)
 		{
 			arpIni++;
 			if(arpIni > 7)
@@ -629,7 +611,7 @@ ISR(TIMER0_OVF_vect)
 		if(!gate)
 		{
 			arpIni = 0;
-			contArp = 0;
+//			contArp = 0;
 		}
 	}
 }
@@ -648,10 +630,7 @@ void ejecutaLFO(void)
 		contLFO = 0;
 		LFO++;
 		if(LFO > 255)
-		{
-			permutaLedR();
 			LFO = 0;
-		}
 	}
 }
 
