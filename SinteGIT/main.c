@@ -141,8 +141,8 @@ int main()
 	Cont[3] = 0;
 	Nota[0] = 0;
 	Nota[1] = 0;
-	Nota[2] = 0;
-	Nota[3] = 0;
+//	Nota[2] = 0;
+//	Nota[3] = 0;
 	volOsc[0] = 255;
 	volOsc[1] = 0;
 	volOsc[2] = 255;
@@ -184,13 +184,13 @@ int main()
 	sampleHold = 0;
 
 	arp[0] = 0;
-	arp[1] = 2;
-	arp[2] = 0;
-	arp[3] = 2;
-	arp[4] = 3;
-	arp[5] = 2;
-	arp[6] = 0;
-	arp[7] = 7;
+	arp[1] = 7;
+	arp[2] = 10;
+	arp[3] = 12;
+	arp[4] = -12;
+	arp[5] = 7;
+	arp[6] = 10;
+	arp[7] = 12;
 
 	arpIni = 0;
 	arpeg = 0;		//	Apagado inicialmente
@@ -465,11 +465,11 @@ int main()
 
 						case 100:
 							arpeg = mm.data2 >> 6;
-							actualizafCut(freqFiltro);
 							break;
 
 						case 101:
 							sampleHold = mm.data2 >> 6;
+							actualizafCut(freqFiltro);
 							break;
 
 						case 22:
@@ -652,12 +652,12 @@ ISR(TIMER0_OVF_vect)
 			mod += (Seno(LFO) * profVibrato) >> 9;
 		}
 		INCREMENT_NOTE(mod,Cont[0]);
-		INCREMENT_NOTE(notas[Nota[0] + oscShift[0]] + ((Seno(LFO) * profVibrato) >> 9) + pitchw,Cont[1]);
+		INCREMENT_NOTE(notas[Nota[0] + arp[arpIni] + oscShift[0]] + ((Seno(LFO) * profVibrato) >> 9) + pitchw,Cont[1]);
 
 		if(fOndaOsc[2] == NADA)
 		{
 			INCREMENT_NOTE(0,Cont[2]);
-			INCREMENT_NOTE(notas[Nota[0] + oscShift[1]] + ((Seno(LFO) * profVibrato) >> 9) + pitchw,Cont[3]);
+			INCREMENT_NOTE(notas[Nota[0] + arp[arpIni] + oscShift[1]] + ((Seno(LFO) * profVibrato) >> 9) + pitchw,Cont[3]);
 		}
 		else
 		{
@@ -675,11 +675,11 @@ ISR(TIMER0_OVF_vect)
 
 	if(arpeg)
 	{
-//		contArp++;
-//		if(contArp > 5000)
-//			contArp = 0;
-//		if(!contArp)
-		if(!LFO)
+		contArp++;
+		if(contArp > (velLFO << 8))
+			contArp = 0;
+		if(!contArp)
+//		if(!LFO)
 		{
 			arpIni++;
 			if(arpIni > largArp)
@@ -688,7 +688,7 @@ ISR(TIMER0_OVF_vect)
 		if(!gate)
 		{
 			arpIni = 0;
-//			contArp = 0;
+			contArp = 0;
 		}
 	}
 }
@@ -770,7 +770,7 @@ uint8_t Super(uint8_t xxx)
 
 uint8_t Super2(uint8_t xxx)
 {
-	return pgm_read_byte(&super2[xxx]);
+	return (xxx & 0xE0);
 }
 
 void actualizafRes(fixed ff)
@@ -1025,6 +1025,6 @@ void cargarArp(uint8_t xxxx)
 
 	for(i=0; i<8; i++)
 	{
-		arp[i] = eeprom_read_byte((uint8_t *)350+i+(i*8)) - 25;
+		arp[i] = eeprom_read_byte((uint8_t *)344+i+(xxxx*8)) - 25;
 	}
 }
