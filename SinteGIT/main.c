@@ -44,8 +44,8 @@ uint8_t freqFiltro;		// Frecuencia del filtro 0-127
 uint8_t freqRes;		// Frecuencia de resonancia
 uint8_t continua;		// Valor en el que oscila el VCA
 uint8_t fOndaOsc[4];	// Formas de onda del oscilador -> 0 y 1 Nota1 --- 2 y 3 Nota2
-uint8_t largArp;		// Contador para bpm
-uint16_t bpmTop;		// Valor de tope para un bpm determinado
+uint8_t largArp;		// Largo del arpegiador
+uint8_t arpHabil;		// Valor de habilitacion/deshabilitacion de step del arpegiador
 uint8_t volOsc[4];		// Volumenes Osc (0-255)
 int8_t oscShift[2];	// Trasposicion de la nota
 uint8_t egReset[2];		// 0 AR(VCA) --- 1 AD(VCF)
@@ -187,13 +187,13 @@ int main()
 	arp[1] = 7;
 	arp[2] = 10;
 	arp[3] = 12;
-	arp[4] = -12;
+	arp[4] = 0;
 	arp[5] = 7;
 	arp[6] = 10;
 	arp[7] = 12;
 
 	arpIni = 0;
-	arpeg = 0;		//	Apagado inicialmente
+	arpeg = 1;		//	Apagado inicialmente
 	largArp = 7;
 	dist = 0;
 
@@ -508,6 +508,21 @@ int main()
 							largArp = mm.data2 >> 4;
 							break;
 
+						case 105:
+							if(mm.data2 < 7)
+							{
+								if(arp[mm.data2] < 50)
+								{
+									arp[mm.data2] += 50;
+								}
+							}
+							else
+							{
+								if(arp[mm.data2 - 8] > 49)
+								arp[mm.data2-8] -= 50;
+							}
+							break;
+
 						default:
 							break;
 					}
@@ -542,6 +557,8 @@ int main()
 						  onda(Cont[3]>>7, fOndaOsc[3], param2[3], volOsc[3]) +
 						  ((Ruido()*volRuido)>>7)) >> DIV4;
 			adsrAux = salida;
+
+
 
 			if(adVel[0] > 1)
 				actualizafCut(adIndex>>1);
@@ -616,7 +633,10 @@ int main()
 					adsrAux = 255;
 			}
 
+			if(arpeg && (arp[arpIni] > 24))
+				adsrAux = 0;
 			OCR1A = adsrAux;
+
 			act = 0;
 		}
 
