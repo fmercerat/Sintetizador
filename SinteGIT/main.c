@@ -193,7 +193,7 @@ int main()
 	arp[7] = 12;
 
 	arpIni = 0;
-	arpeg = 1;		//	Apagado inicialmente
+	arpeg = 0;		//	Apagado inicialmente
 	largArp = 7;
 	dist = 0;
 
@@ -262,7 +262,7 @@ int main()
 					else
 					{
 						adsrCont = 0;
-						adsrIndex = 0;
+					//	adsrIndex = 0;
 						adCont = 0;
 						adIndex = adInicio;
 						adTope = 0;
